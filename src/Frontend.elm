@@ -5,12 +5,39 @@ import Browser.Navigation as Nav
 import Html
 import Html.Attributes as Attr
 import Html.Events
+import Json.Decode
+import Json.Encode
 import Lamdera
 import Types exposing (..)
 import Url
 
 
 port supermario_copy_to_clipboard_to_js : String -> Cmd msg
+
+
+port selection_changed_from_js : (Json.Encode.Value -> msg) -> Sub msg
+
+
+decodeHtmlIdAndSelection : Json.Decode.Decoder ( Maybe String, Maybe ( Range, String ) )
+decodeHtmlIdAndSelection =
+    Json.Decode.oneOf
+        [ Json.Decode.map4
+            (\id start end direction ->
+                ( id
+                , Just
+                    ( { start = start, end = end }
+                    , direction
+                    )
+                )
+            )
+            (Json.Decode.field "id" (Json.Decode.nullable Json.Decode.string))
+            (Json.Decode.field "selectionStart" Json.Decode.int)
+            (Json.Decode.field "selectionEnd" Json.Decode.int)
+            (Json.Decode.field "selectionDirection" Json.Decode.string)
+        , Json.Decode.map
+            (\id -> ( id, Nothing ))
+            (Json.Decode.field "id" (Json.Decode.nullable Json.Decode.string))
+        ]
 
 
 app =
@@ -20,7 +47,14 @@ app =
         , onUrlChange = UrlChanged
         , update = update
         , updateFromBackend = updateFromBackend
-        , subscriptions = \m -> Sub.none
+        , subscriptions =
+            \m ->
+                selection_changed_from_js
+                    (\json ->
+                        Json.Decode.decodeValue decodeHtmlIdAndSelection json
+                            |> Result.mapError Json.Decode.errorToString
+                            |> SelectionChange
+                    )
         , view = view
         }
 
@@ -58,6 +92,13 @@ update msg model =
         PressedCopyButton ->
             ( model, supermario_copy_to_clipboard_to_js "Text copied to clipboard!" )
 
+        SelectionChange string ->
+            let
+                _ =
+                    Debug.log "SelectionChange" string
+            in
+            ( model, Cmd.none )
+
 
 updateFromBackend : ToFrontend -> FrontendModel -> ( FrontendModel, Cmd FrontendMsg )
 updateFromBackend msg model =
@@ -78,6 +119,7 @@ view model =
                 ]
                 [ Html.text model.message
                 , Html.button [ Html.Events.onClick PressedCopyButton ] [ Html.text "Copy to clipboard" ]
+                , Html.textarea [] []
                 ]
             ]
         ]

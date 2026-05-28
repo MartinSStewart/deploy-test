@@ -6,6 +6,16 @@ exports.init = async function(app) {
   app.ports.supermario_copy_to_clipboard_to_js.subscribe(function(text) {
     copyTextToClipboard(text)
   })
+
+  const time = Date.now();
+
+  document.addEventListener('selectionchange', (event) => {
+      const node = document.activeElement;
+      console.log(time);
+      if (node) {
+          app.ports.selection_changed_from_js.send(node);
+      }
+  });
 }
 
 function copyTextToClipboard(text) {
