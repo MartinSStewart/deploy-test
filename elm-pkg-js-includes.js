@@ -2,7 +2,7 @@
 // For now, its presence will mean Lamdera detects the extra JS and packages
 // In future this will be more structured + restricted once the design is done
 
-const lamdera_labs_media = require('./elm-pkg-js/lamdera-labs-media')
+const lamdera_labs_media = require('./elm-pkg-js/lamdera-labs-media.js')
 
 exports.init = async function init(app) {
   // @WARNING: this only runs for Lamdera production deploys!
